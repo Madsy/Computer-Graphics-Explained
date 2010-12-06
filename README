@@ -1,0 +1,47 @@
+================================================================================
+=                           COMPUTER GRAPHICS EXPLAINED                        =
+================================================================================
+=      WEBPAGE: http://wiki.mechcore.net/Computer_Graphics_Explained           =
+================================================================================
+=      AUTHOR : Mads Andreas Elvheim, Alias 'Madsy'                            =
+================================================================================
+=      ABOUT:   This is the source code examples for a series of articles I've =
+=               written about 2D/3D computer graphics theory. It's meant as a  =
+=               starting point for people who want to know more about computer-=
+=               graphics, and what happens under the hood of OpenGL and DirectX=
+=               The future example for my "OpenGL Explained" will be found und-=
+=               er a second repo.                                              =
+================================================================================
+=      HOW TO BUILD: I've tried to make the build-process as idiot-proof as    =
+=                    possible. You will need CMake installed, libPNG (soon)    =
+=                    and the SDL library.                                      =
+=                                                                              =
+=      ON WINDOWS:   You will need either Visual Studio installed,             =
+=                    or MinGW with MSYS.                                       =
+=                    If you want to compile with Visual Studio's nmake, go to  =
+=                    the start menu and find the shortcut to the Visual Studio =
+=                    XXXX Command prompt. It sets the needed environment vari- =
+=                    ables for you. Type    cmake .   in the root directory.   =
+=                    Then type     nmake                                       =
+=                    If you want to use MinGW/MSYS, then make sure your git    =
+=                    repo is available under the MSYS root system. For example =
+=                    in the home directory. Go into the git root directory and =
+=                    type     cmake -G "MSYS Makefiles" .                      =
+=                    The dot '.' is a part of the command.                     =
+=                                                                              =
+=      ON LINUX  :   It should work with just cmake . in the git repo.         =
+=                                                                              =
+=      ON OSX/MAC:   I have no idea. I have no ways to test my build nor my    =
+=                    code for OSX. If you want to contribute, feel free. Send  =
+=                    me a patch for any files, including the CmakeLists.txt    =
+=                    build file if you bother.                                 =
+================================================================================
+=     CONTACT    : If you have any trouble with the code, I'm on the following =
+=                  IRC channels on FreeNode:                                   =
+=                  - ##OpenGL                                                  =
+=                  - #algorithms                                               =
+=                  - #stackoverflow                                            =
+=                                                                              =
+=                   Just don't bother me with math questions please ;-)        =
+================================================================================
+
