@@ -159,14 +159,6 @@ static void drawLine(const Vector4f& v1, const Vector4f& v2,
 	return;
 }
 
-/*
-static bool isInsideFrustum(const Vector4f v, )
-{
-if(v.x >= 0 && v.x < width
-				&& y >= 0 && y < height
-				&& p.z > -p.w && -p.w <= p.z && p.z <= p.w)
-}
-*/
 int main(int argc, char* argv[])
 {
 	(void)argc;
@@ -185,20 +177,7 @@ int main(int argc, char* argv[])
 	SDL_WM_SetCaption("MechCore.net Projection Example", NULL);
     
     makeSpherePointCloudMesh(points, 2.0f);
-    /*
-    points.push_back(Vector4f( 0.5f,  0.5f, 0.0f, 1.0f));
-    points.push_back(Vector4f(-0.5f,  0.5f, 0.0f, 1.0f));
-    points.push_back(Vector4f(-0.5f,  0.5f, 0.0f, 1.0f));
-    points.push_back(Vector4f(-0.5f, -0.5f, 0.0f, 1.0f));
-    points.push_back(Vector4f(-0.5f, -0.5f, 0.0f, 1.0f));
-    points.push_back(Vector4f( 0.5f, -0.5f, 0.0f, 1.0f));
-    points.push_back(Vector4f( 0.5f, -0.5f, 0.0f, 1.0f));
-    points.push_back(Vector4f( 0.5f,  0.5f, 0.0f, 1.0f));
-    */
-    /*
-    points.push_back(Vector4f( 0.5f,  0.0, 0.0f, 1.0f));
-    points.push_back(Vector4f( -0.5f,  0.0, 0.0f, 1.0f));
-    */
+ 
     while(running){
         while(SDL_PollEvent(&event)){
             switch(event.type)
@@ -277,5 +256,3 @@ int main(int argc, char* argv[])
 
     return 0;
 }
-
-//printf("%2.3f, %2.3f, %2.3f, %2.3f %2.3f\n", p.x, p.y, p.z, p.w, zn);

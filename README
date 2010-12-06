@@ -21,20 +21,44 @@
 =                    If you want to compile with Visual Studio's nmake, go to  =
 =                    the start menu and find the shortcut to the Visual Studio =
 =                    XXXX Command prompt. It sets the needed environment vari- =
-=                    ables for you. Type    cmake .   in the root directory.   =
-=                    Then type     nmake                                       =
+=                    ables for you. Enter the git directory and do:            =
+=                                                                              =
+=                    mkdir myBuild                                             =
+=                    cd myBuild                                                =
+=                    cmake ..                                                  =
+=                    nmake                                                     =
+=                                                                              =
 =                    If you want to use MinGW/MSYS, then make sure your git    =
 =                    repo is available under the MSYS root system. For example =
 =                    in the home directory. Go into the git root directory and =
-=                    type     cmake -G "MSYS Makefiles" .                      =
-=                    The dot '.' is a part of the command.                     =
+=                    type:                                                     =
 =                                                                              =
-=      ON LINUX  :   It should work with just cmake . in the git repo.         =
+=                    mkdir myBuild                                             =
+=                    cd myBuild                                                =
+=                    cmake -G "MSYS Makefiles" ..                              =
+=                    mingw32-make                                              =
+=                                                                              =
+=                    The dots '..' is a part of the command.                   =
+=                    The -G flag chooses a generator for outputting MinGW      =
+=                    Makefiles.                                                =
+=                                                                              =
+=      ON LINUX  :   It should work with just like the others:                 =
+=                                                                              =
+=                    mkdir myBuild                                             =
+=                    cd myBuild                                                =
+=                    cmake ..                                                  =
+=                    make                                                      =
 =                                                                              =
 =      ON OSX/MAC:   I have no idea. I have no ways to test my build nor my    =
 =                    code for OSX. If you want to contribute, feel free. Send  =
 =                    me a patch for any files, including the CmakeLists.txt    =
 =                    build file if you bother.                                 =
+=                                                                              =
+= CROSS-COMPILING:   As in doing a cross for another platform/arch than the    =
+=                    host. I haven't tried this yet, and the CMakeLists.txt    =
+=                    isn't made for this in mind. You can try however.         =
+=                    The include and lib paths for SDL can be set explicitly   =
+=                    with SDL_INCLUDE_DIR and SDL_LIBRARY                      =
 ================================================================================
 =     CONTACT    : If you have any trouble with the code, I'm on the following =
 =                  IRC channels on FreeNode:                                   =

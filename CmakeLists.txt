@@ -22,6 +22,19 @@ SET( ${PROJECT_NAME}_MAJOR_VERSION 0 )
 SET( ${PROJECT_NAME}_MINOR_VERSION 1 )
 SET( ${PROJECT_NAME}_PATCH_LEVEL 0 )
 
+# For some reason, this IF always fails. Commented out until fixed.
+# IF( "${CMAKE_BINARY_BUILD}" STREQUAL "${CMAKE_SOURCE_BUILD}" )
+#   MESSAGE( FATAL_ERROR
+#   "Stopping you from doing an in-source build. Bad, BAD :-)!\n"
+#   "Rather do:\n"
+#   "mkdir MyBuild\n"
+#   "cd MyBuild\n"
+#   "cmake <params> ..\n"
+#   "make\n")
+# ELSE()
+#   MESSAGE( STATUS "Good, you're doing an out-source build. Keep it that way." )
+# ENDIF()
+
 IF( NOT CMAKE_BUILD_TYPE )
 SET( CMAKE_BUILD_TYPE "RelWithDebInfo" )
 ENDIF()
@@ -86,14 +99,14 @@ SET( CMAKE_PREFIX_PATH "${CMAKE_PREFIX_PATH}" CACHE PATH
   "The prefix path to the toolchain's /bin /include and /lib" FORCE )
 
 include_directories( AFTER "${SDL_INCLUDE_DIR}" )
-include_directories( AFTER "${CMAKE_BINARY_DIR}/include" )
+include_directories( AFTER "${CMAKE_SOURCE_DIR}/include" )
 
 SET( CGE_EXAMPLES
   projection
   clipping
 )
 FOREACH(example ${CGE_EXAMPLES})
-  ADD_SUBDIRECTORY(${CMAKE_BINARY_DIR}/${example} ${CMAKE_BINARY_DIR}/${example}/bin )
+  ADD_SUBDIRECTORY(${CMAKE_SOURCE_DIR}/${example} ${CMAKE_BINARY_DIR}/${example}/bin )
 ENDFOREACH()
 
 
