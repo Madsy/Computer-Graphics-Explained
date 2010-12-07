@@ -58,28 +58,32 @@ static void drawLineXMajor(const Vector4f& v1, const Vector4f& v2,
 
 /* A straight vertical line, which is a special case. The y direction is 0, so x/y = Inf
    Called internally by drawLine() */
-static void drawLineVertical(const Vector4f& v1, const Vector4f& v2,
-					unsigned int* buffer, int width, int height)
+static void drawLineVertical(Vector4f v1, Vector4f v2,
+			     unsigned int* buffer, int width, int height)
 {
-	int x = v1.x;
-	int y1 = v1.y;
-	int y2 = v2.y;
+    if(v2.y < v1.y)
+	std::swap(v1, v2);
+    int x = v1.x;
+    int y1 = v1.y;
+    int y2 = v2.y;
 	
-	for(int y=v1.y; y<v2.y; ++y)
-		buffer[x + y*width] = 0xFFFFFFFF;
+    for(int y=v1.y; y<v2.y; ++y)
+	buffer[x + y*width] = 0xFFFFFFFF;
 }
 
 /* A straight horisontal line, which is a special case. The x direction is 0, so y/x = Inf
    Called internally by drawLine() */
-static void drawLineHorisontal(const Vector4f& v1, const Vector4f& v2,
-					unsigned int* buffer, int width, int height)
+static void drawLineHorisontal(Vector4f v1, Vector4f v2,
+			       unsigned int* buffer, int width, int height)
 {
-	int y = v1.y;
-	int x1 = v1.x;
-	int x2 = v2.x;
+    if(v2.x < v1.x)
+	std::swap(v1, v2);
+    int y = v1.y;
+    int x1 = v1.x;
+    int x2 = v2.x;
 	
-	for(int x=v1.x; x<v2.x; ++x)
-		buffer[x + y*width] = 0xFFFFFFFF;
+    for(int x=v1.x; x<v2.x; ++x)
+	buffer[x + y*width] = 0xFFFFFFFF;
 }
 
 /* Our externally visible function, which draws lines with the Bresenham algorithm */

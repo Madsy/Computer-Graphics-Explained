@@ -5,6 +5,7 @@
 #include "clipplane.h"
 #include "line.h"
 #include "meshgen.h"
+#include "myassert.h"
 
 int main(int argc, char* argv[])
 {
@@ -18,9 +19,7 @@ int main(int argc, char* argv[])
     SDL_Event event;
     std::vector<Vector4f> triangleMesh;
     std::vector<Vector4f> workingCopy;   
-    std::vector<Vector4f> trianglesInside;
-    std::vector<Vector4f> trianglesClipped;
-
+ 
     SDL_Init(SDL_INIT_VIDEO);
     SDL_Surface* screen = SDL_SetVideoMode(width, height, depth, SDL_DOUBLEBUF | SDL_HWSURFACE);
     SDL_WM_SetCaption("MechCore.net Projection Example", NULL);
@@ -45,11 +44,12 @@ int main(int argc, char* argv[])
         float time = (float)SDL_GetTicks() * 0.001f;
         /* We need a new working copy every frame */
         workingCopy.resize(triangleMesh.size());
-	trianglesInside.resize(0);
-	trianglesClipped.resize(0);
         std::copy(triangleMesh.begin(), triangleMesh.end(), workingCopy.begin());
 	/* changing translate in the x-axis, to test clipping */
-	float xtrans = 5.0f * std::sin(PI * 2.0f * time * 0.0125f);
+	float xtrans = 3.7f * std::sin(PI * 2.0f * time * 0.125f);
+	xtrans = -xtrans;
+	//float xtrans = 3.7f;
+	//printf("x translation: %f\n", xtrans);
         /* world matrix transform */
         Matrix4f worldMatrix = translate(Vector4f(xtrans, 0.0f, -3.25f, 1.0f)); /* * 
 								rotateY(time * 90.0f);*/ /*  *
@@ -61,6 +61,7 @@ int main(int argc, char* argv[])
 	Matrix4f worldClipMatrix = clipMatrix * worldMatrix;
 				
         /* Transform our points */
+
         for(unsigned int i=0; i<workingCopy.size(); i+=3){
 	    Vector4f& p1 = workingCopy[i];
 	    Vector4f& p2 = workingCopy[i+1];
@@ -69,36 +70,14 @@ int main(int argc, char* argv[])
             p1 = worldClipMatrix * p1;
 	    p2 = worldClipMatrix * p2;
 	    p3 = worldClipMatrix * p3;
-            
-	    int inside = classifyTriangle(p1, p2, p3);
-	    switch(inside)
-	    {
-	    case 0x0:
-		/* totally outside,
-		 so dicard */
-		break;
-	    case 0x1FF:
-		/* totally inside, add to own list*/
-		trianglesInside.push_back(p1);
-		trianglesInside.push_back(p2);
-		trianglesInside.push_back(p3);
-		break;
-	    default:
-		/* clips against one or more edges */
-		trianglesClipped.push_back(p1);
-		trianglesClipped.push_back(p2);
-		trianglesClipped.push_back(p3);
-	    }
-        }
+	}
 
-	clip_triangle(trianglesClipped, Vector4f( 1.0f,  0.0f, 0.0f,  1.0f));
-	clip_triangle(trianglesClipped, Vector4f(-1.0f,  0.0f, 0.0f, -1.0f));
-	clip_triangle(trianglesClipped, Vector4f( 0.0f,  1.0f, 0.0f,  1.0f));
-	clip_triangle(trianglesClipped, Vector4f( 0.0f, -1.0f, 0.0f, -1.0f));
+	clip_triangle(workingCopy, Vector4f(-1.0f,  0.0f, 0.0f, 1.0f));
+	clip_triangle(workingCopy, Vector4f( 1.0f,  0.0f, 0.0f, 1.0f));
+	clip_triangle(workingCopy, Vector4f( 0.0f,  1.0f, 0.0f, 1.0f));
+        clip_triangle(workingCopy, Vector4f( 0.0f, -1.0f, 0.0f, 1.0f));
 
-	workingCopy = trianglesInside;
-	std::copy(trianglesClipped.begin(), trianglesClipped.end(), std::back_inserter(workingCopy));
-	
+	ASSERT(!(workingCopy.size() % 3));
 	for(unsigned int i=0; i<workingCopy.size(); ++i)
 	{
 	    /* does not divide w by w */
@@ -126,8 +105,8 @@ int main(int argc, char* argv[])
 	    drawLine(p2, p3, pixels, width, height);
 	    drawLine(p3, p1, pixels, width, height);
         }
+	SDL_Flip(screen);
         SDL_UnlockSurface(screen);
-        SDL_Flip(screen);
     }    
     SDL_Quit();
     return 0;

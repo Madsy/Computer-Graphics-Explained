@@ -3,24 +3,6 @@
 #include <linealg.h>
 #include "clipplane.h"
 
-/* true if inside */
-int classifyTriangle(const Vector4f& v1, const Vector4f& v2, const Vector4f& v3)
-{
-    int bx1 = (-v1.w <= v1.x && v1.x <= v1.w) ? 1 : 0;
-    int by1 = (-v1.w <= v1.y && v1.y <= v1.w) ? 2 : 0;
-    int bz1 = (-v1.w <= v1.z && v1.z <= v1.w) ? 4 : 0;
-
-    int bx2 = (-v2.w <= v2.x && v2.x <= v2.w) ? 8 : 0;
-    int by2 = (-v2.w <= v2.y && v2.y <= v2.w) ? 16 : 0;
-    int bz2 = (-v2.w <= v2.z && v2.z <= v2.w) ? 32 : 0;
-
-    int bx3 = (-v3.w <= v3.x && v3.x <= v3.w) ? 64 : 0;
-    int by3 = (-v3.w <= v3.y && v3.y <= v3.w) ? 128 : 0;
-    int bz3 = (-v3.w <= v3.z && v3.z <= v3.w) ? 256 : 0;
-
-    return bx1|bx2|bx3 | by1|by2|by3 | bz1|bz2|bz3;
-}
-
 void clip_triangle(std::vector<Vector4f>& vertexList, Vector4f plane)
 {
     unsigned int edge0, edge1;
@@ -31,7 +13,8 @@ void clip_triangle(std::vector<Vector4f>& vertexList, Vector4f plane)
 	for(edge0=tri+2, edge1=tri; edge1 < tri+3; edge0 = edge1++){
 	    Vector4f point_current = vertexList[edge0];
 	    Vector4f point_next = vertexList[edge1];
-
+            /* point.w is positive*/
+	    /* v.n - d = 0 */
 	    float dot0 = dot(point_current, plane) + point_current.w * plane.w;
 	    float dot1 = dot(point_next,    plane) + point_next.w    * plane.w;
 
@@ -50,7 +33,7 @@ void clip_triangle(std::vector<Vector4f>& vertexList, Vector4f plane)
 		    std::swap(point_current, point_next);
 		    std::swap(dot0, dot1);
 		}
-		diff = dot1 - dot0;
+		diff = dot0 - dot1;
 		if (std::abs(diff) > 1e-10)
 		    t = dot0 / diff;
 		Vector4f clip = point_current + (point_next - point_current) * t;
