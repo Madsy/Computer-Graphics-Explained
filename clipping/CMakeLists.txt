@@ -1,6 +1,9 @@
 PROJECT(Clipping)
 SET( ${PROJECT_NAME}_SOURCES
-  clipping.cpp
+  main.cpp
+  clipplane.cpp
+  line.cpp
+  meshgen.cpp
 )
 
 ADD_EXECUTABLE(${PROJECT_NAME} ${${PROJECT_NAME}_SOURCES})

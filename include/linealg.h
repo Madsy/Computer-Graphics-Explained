@@ -70,17 +70,17 @@ template<class T> T distance(const Vector4<T>& v1, const Vector4<T>& v2)
 
 /* Linear interpolation */
 
-Vector2f mix(float t, const Vector2f& v1, const Vector2f& v2)
+inline Vector2f mix(float t, const Vector2f& v1, const Vector2f& v2)
 {
 	return v1*(t-1.0f) + v2*t;
 }
 
-Vector3f mix(float t, const Vector3f& v1, const Vector3f& v2)
+inline Vector3f mix(float t, const Vector3f& v1, const Vector3f& v2)
 {
 	return v1*(t-1.0f) + v2*t;
 }
 
-Vector4f mix(float t, const Vector4f& v1, const Vector4f& v2)
+inline Vector4f mix(float t, const Vector4f& v1, const Vector4f& v2)
 {
 	return v1*(t-1.0f) + v2*t;
 }

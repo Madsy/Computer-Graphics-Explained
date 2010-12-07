@@ -1,6 +1,8 @@
 PROJECT(Projection)
 SET( ${PROJECT_NAME}_SOURCES
-  projection.cpp
+  main.cpp
+  line.cpp
+  meshgen.cpp
 )
 
 ADD_EXECUTABLE(${PROJECT_NAME} ${${PROJECT_NAME}_SOURCES})
