@@ -3,26 +3,17 @@
 #include <linealg.h>
 #include "clipplane.h"
 
-static Vector4f computeClippedPoint(const Vector4f& v1, const Vector4f& v2, float c1, float c2, float w)
-{
-    /*
-    0.9 1.0 1.9
-    
-    */
-    Vector4f p;
-    float t = (w - c1) / (c2 - c1);
-    p = mix(t, v1, v2);
-}
-
 /* true if inside */
 int classifyTriangle(const Vector4f& v1, const Vector4f& v2, const Vector4f& v3)
 {
     int bx1 = (-v1.w <= v1.x && v1.x <= v1.w) ? 1 : 0;
     int by1 = (-v1.w <= v1.y && v1.y <= v1.w) ? 2 : 0;
     int bz1 = (-v1.w <= v1.z && v1.z <= v1.w) ? 4 : 0;
+
     int bx2 = (-v2.w <= v2.x && v2.x <= v2.w) ? 8 : 0;
     int by2 = (-v2.w <= v2.y && v2.y <= v2.w) ? 16 : 0;
     int bz2 = (-v2.w <= v2.z && v2.z <= v2.w) ? 32 : 0;
+
     int bx3 = (-v3.w <= v3.x && v3.x <= v3.w) ? 64 : 0;
     int by3 = (-v3.w <= v3.y && v3.y <= v3.w) ? 128 : 0;
     int bz3 = (-v3.w <= v3.z && v3.z <= v3.w) ? 256 : 0;
@@ -63,7 +54,6 @@ void clip_triangle(std::vector<Vector4f>& vertexList, Vector4f plane)
 		if (std::abs(diff) > 1e-10)
 		    t = dot0 / diff;
 		Vector4f clip = point_current + (point_next - point_current) * t;
-		//clip.w = point_current.w + 1.0f / (((1.0f / point_next.w) - (1.0f / point_current.w)) * t);
 		clip.w = point_current.w +  (point_next.w - point_current.w) * t;
 		polygon.push_back(clip);
 	    }
