@@ -22,18 +22,18 @@ SET( ${PROJECT_NAME}_MAJOR_VERSION 0 )
 SET( ${PROJECT_NAME}_MINOR_VERSION 1 )
 SET( ${PROJECT_NAME}_PATCH_LEVEL 0 )
 
-# For some reason, this IF always fails. Commented out until fixed.
-# IF( "${CMAKE_BINARY_BUILD}" STREQUAL "${CMAKE_SOURCE_BUILD}" )
-#   MESSAGE( FATAL_ERROR
-#   "Stopping you from doing an in-source build. Bad, BAD :-)!\n"
-#   "Rather do:\n"
-#   "mkdir MyBuild\n"
-#   "cd MyBuild\n"
-#   "cmake <params> ..\n"
-#   "make\n")
-# ELSE()
-#   MESSAGE( STATUS "Good, you're doing an out-source build. Keep it that way." )
-# ENDIF()
+#For some reason, this IF always fails. Commented out until fixed.
+IF( ${CMAKE_BINARY_DIR} STREQUAL ${CMAKE_SOURCE_DIR} )
+  MESSAGE( FATAL_ERROR
+  "Stopping you from doing an in-source build. Bad, BAD :-)!\n"
+  "Rather do:\n"
+  "mkdir MyBuild\n"
+  "cd MyBuild\n"
+  "cmake <params> ..\n"
+  "make\n")
+  ELSE()
+    MESSAGE( STATUS "Good, you're doing an out-source build. Keep it that way." )
+ENDIF()
 
 IF( NOT CMAKE_BUILD_TYPE )
   SET( CMAKE_BUILD_TYPE "RelWithDebInfo" )

@@ -24,7 +24,7 @@ int main(int argc, char* argv[])
     SDL_Surface* screen = SDL_SetVideoMode(width, height, depth, SDL_DOUBLEBUF | SDL_HWSURFACE);
     SDL_WM_SetCaption("MechCore.net Projection Example", NULL);
     
-    makeMeshSphere(triangleMesh, 2.0f);
+    makeMeshCircle(triangleMesh, 2.0f);
  
     while(running){
         while(SDL_PollEvent(&event)){
