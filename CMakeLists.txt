@@ -109,6 +109,7 @@ include_directories( AFTER "${CMAKE_SOURCE_DIR}/include" )
 SET( CGE_EXAMPLES
   projection
   clipping
+  rasterizer
 )
 FOREACH(example ${CGE_EXAMPLES})
   ADD_SUBDIRECTORY(${CMAKE_SOURCE_DIR}/${example} ${CMAKE_BINARY_DIR}/${example}/bin )
