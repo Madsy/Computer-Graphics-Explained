@@ -19,25 +19,26 @@ int main(int argc, char* argv[])
     SDL_Event event;
     std::vector<Vector4f> triangleMesh;
     std::vector<Vector4f> workingCopy;   
- 
+    std::vector<Vector4i> finalCopy;
+
     SDL_Init(SDL_INIT_VIDEO);
     SDL_Surface* screen = SDL_SetVideoMode(width, height, depth, SDL_DOUBLEBUF | SDL_SWSURFACE);
     SDL_WM_SetCaption("MechCore.net Projection Example", NULL);
     
-    //makeMeshCircle(triangleMesh, 2.0f);
+    makeMeshCircle(triangleMesh, 2.0f);
     /*
     triangleMesh.push_back(Vector4f( 0.0f,  0.5f, 0.0f, 1.0f));
     triangleMesh.push_back(Vector4f(-0.5f, -0.5f, 0.0f, 1.0f));
     triangleMesh.push_back(Vector4f( 0.5f, -0.5f, 0.0f, 1.0f));
     */
-    
+    /*
     triangleMesh.push_back(Vector4f(  0.5f,   0.5f, 0.0f, 1.0f));
     triangleMesh.push_back(Vector4f( -0.5f,   0.5f, 0.0f, 1.0f));
     triangleMesh.push_back(Vector4f(  0.5f,  -0.5f, 0.0f, 1.0f));
     triangleMesh.push_back(Vector4f(  0.5f,  -0.5f, 0.0f, 1.0f));
     triangleMesh.push_back(Vector4f( -0.5f,   0.5f, 0.0f, 1.0f));
     triangleMesh.push_back(Vector4f( -0.5f,  -0.5f, 0.0f, 1.0f));
-    
+    */
     while(running){
         while(SDL_PollEvent(&event)){
             switch(event.type)
@@ -88,6 +89,7 @@ int main(int argc, char* argv[])
         clip_triangle(workingCopy, Vector4f( 0.0f, -1.0f, 0.0f, 1.0f));
 
 	ASSERT(!(workingCopy.size() % 3));
+	finalCopy.resize(workingCopy.size());
 	for(unsigned int i=0; i<workingCopy.size(); ++i)
 	{
 	    /* does not divide w by w */
@@ -97,6 +99,12 @@ int main(int argc, char* argv[])
 	    /* project to screenspace
 	       project function is in linealg.h under /include */
 	    workingCopy[i] = project(workingCopy[i], (float)width, (float)height);
+	    finalCopy[i] = Vector4i(
+				    workingCopy[i].x * 65536.0f,
+				    workingCopy[i].y * 65536.0f,
+				    workingCopy[i].z * 65536.0f,
+				    workingCopy[i].w * 65536.0f
+				    );
 	}
 
         //SDL_LockSurface(screen);
@@ -105,7 +113,8 @@ int main(int argc, char* argv[])
         /* clear the screen to black */
         memset(pixels, 0, sizeof(Uint32) * width * height);
 	/* draw the triangles */
-	DrawTriangle(workingCopy, pixels, width, height);
+	TriangleSplit(finalCopy);
+	DrawTriangle(finalCopy, pixels, width, height);
 
 	SDL_Flip(screen);
         //SDL_UnlockSurface(screen);
