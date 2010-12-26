@@ -44,10 +44,6 @@ IF( ${CMAKE_BUILD_TYPE} STREQUAL "Debug")
   SET( CMAKE_CXX_FLAGS_DEBUG "-DDEBUG -g")
 ENDIF()
 
-IF( APPLE )
-  MESSAGE( FATAL_ERROR "Sorry, this makefile doesn't support OSX yet." )
-ENDIF()
-
 IF( NOT CMAKE_PREFIX_PATH )
   MESSAGE( WARNING "CMAKE_PREFIX_PATH not set. Attempting to guess.." )
   IF( WIN32 )
@@ -61,15 +57,20 @@ IF( NOT CMAKE_PREFIX_PATH )
     ENDIF()
   ELSEIF( LINUX )
     SET(CMAKE_PREFIX_PATH "/usr")
+  ELSEIF( APPLE )
+    
   ENDIF()
   MESSAGE( STATUS "CMAKE_PREFIX_PATH set to ${CMAKE_PREFIX_PATH}" )
 ENDIF()
 
+#########################################
+##        Find the SDL library         ##
+#########################################
 IF( NOT SDL_INCLUDE_DIR AND SDL_LIBRARY )
   MESSAGE( FATAL_ERROR "Both the SDL_INCLUDE_DIR path and SDL_LIBRARY must be set." )
 ELSEIF( SDL_INCLUDE_DIR AND NOT SDL_LIBRARY )
   MESSAGE( FATAL_ERROR "Both the SDL_INCLUDE_DIR path and SDL_LIBRARY must be set." )
-ELSEIF( NOT SDL_INCLUDE_DIR AND NOT SDL_LIBRARY )
+ELSE( )
   MESSAGE( STATUS "SDL_INCLUDE_DIR and SDL_LIBRARY not set. Using CMAKE_PREFIX_PATH instead for searching." )
   FIND_PACKAGE( SDL REQUIRED )
   IF( NOT SDL_FOUND )
@@ -83,33 +84,85 @@ ELSEIF( SDL_INCLUDE_DIR AND SDL_LIBRARY )
   SET(SDL_FOUND "YES")
 ENDIF()
 
-MESSAGE( STATUS )
-MESSAGE( STATUS "------------------------------------------------------------------------------" )
-MESSAGE( STATUS "CMAKE_PREFIX_PATH = \"${CMAKE_PREFIX_PATH}\"")
-MESSAGE( STATUS "SDL_FOUND = ${SDL_FOUND}" )
-MESSAGE( STATUS "SDL_LIBRARY = ${SDL_LIBRARY}" )
-MESSAGE( STATUS "SDL_INCLUDE_DIR = ${SDL_INCLUDE_DIR}" )
-MESSAGE( STATUS "Change a value with: cmake -D<Variable>=<Value>" )
-MESSAGE( STATUS "------------------------------------------------------------------------------" )
-MESSAGE( STATUS )
+#########################################
+##        Find the PNG library         ##
+#########################################
+IF( NOT PNG_INCLUDE_DIR AND PNG_LIBRARIES )
+  MESSAGE( FATAL_ERROR "Both the PNG_INCLUDE_DIR path and PNG_LIBRARIES must be set." )
+ELSEIF( PNG_INCLUDE_DIR AND NOT PNG_LIBRARIES )
+  MESSAGE( FATAL_ERROR "Both the PNG_INCLUDE_DIR path and PNG_LIBRARIES must be set." )
+ELSE( )
+  MESSAGE( STATUS "PNG_INCLUDE_DIR and PNG_LIBRARIES not set. Using CMAKE_PREFIX_PATH instead for searching." )
+  FIND_PACKAGE( PNG REQUIRED )
+  IF( NOT PNG_FOUND )
+    MESSAGE( FATAL_ERROR 
+    "Couldn't find the location of the libPNG library. Either set CMAKE_PREFIX_PATH to be your"
+    " path prefix (the directory under bin, lib and include), or set PNG_INCLUDE_DIR and PNG_LIBRARIES" )
+  ELSE ( NOT PNG_FOUND )
+    MESSAGE( STATUS "Found the libPNG library under ${PNG_INCLUDE_DIR} and ${PNG_LIBRARIES}. Continuing with build." )
+  ENDIF()
+ELSEIF( PNG_INCLUDE_DIR AND PNG_LIBRARIES )
+  SET(PNG_FOUND "YES")
+ENDIF()
+
+#########################################
+##        Find the ZLIB library        ##
+#########################################
+IF( NOT ZLIB_INCLUDE_DIRS AND ZLIB_LIBRARIES )
+  MESSAGE( FATAL_ERROR "Both the ZLIB_INCLUDE_DIRS path and ZLIB_LIBRARIES must be set." )
+ELSEIF( ZLIB_INCLUDE_DIRS AND NOT ZLIB_LIBRARIES )
+  MESSAGE( FATAL_ERROR "Both the ZLIB_INCLUDE_DIRS path and ZLIB_LIBRARIES must be set." )
+ELSE( )
+  MESSAGE( STATUS "ZLIB_INCLUDE_DIRS and ZLIB_LIBRARIES not set. Using CMAKE_PREFIX_PATH instead for searching." )
+  FIND_PACKAGE( ZLIB REQUIRED )
+  IF( NOT ZLIB_FOUND )
+    MESSAGE( FATAL_ERROR 
+    "Couldn't find the location of the zlib library. Either set CMAKE_PREFIX_PATH to be your"
+    " path prefix (the directory under bin, lib and include), or set ZLIB_INCLUDE_DIRS and ZLIB_LIBRARIES" )
+  ELSE ( NOT ZLIB_FOUND )
+    MESSAGE( STATUS "Found the zlib library under ${ZLIB_INCLUDE_DIRS} and ${ZLIB_LIBRARIES}. Continuing with build." )
+  ENDIF()
+ELSEIF( ZLIB_INCLUDE_DIRS AND ZLIB_LIBRARIES )
+  SET(ZLIB_FOUND "YES")
+ENDIF()
+
+
 
 # Force variables into the cache
+SET( CMAKE_PREFIX_PATH "${CMAKE_PREFIX_PATH}" CACHE PATH
+  "The prefix path to the toolchain's /bin /include and /lib" FORCE )
+
 SET( SDL_FOUND "${SDL_FOUND}" CACHE BOOL
   "The SDL library found status" FORCE )
 SET( SDL_INCLUDE_DIR "${SDL_INCLUDE_DIR}" CACHE PATH
   "The SDL library include directory" FORCE )
 SET( SDL_LIBRARY "${SDL_LIBRARY}" CACHE PATH
   "The SDL path to the SDL library" FORCE )
-SET( CMAKE_PREFIX_PATH "${CMAKE_PREFIX_PATH}" CACHE PATH
-  "The prefix path to the toolchain's /bin /include and /lib" FORCE )
+
+SET( PNG_FOUND "${PNG_FOUND}" CACHE BOOL
+  "The PNG library found status" FORCE )
+SET( PNG_INCLUDE_DIR "${PNG_INCLUDE_DIR}" CACHE PATH
+  "The PNG library include directory" FORCE )
+SET( PNG_LIBRARIES "${PNG_LIBRARIES}" CACHE PATH
+  "The PNG path to the PNG library" FORCE )
+
+SET( ZLIB_FOUND "${ZLIB_FOUND}" CACHE BOOL
+  "The ZLIB library found status" FORCE )
+SET( ZLIB_INCLUDE_DIRS "${ZLIB_INCLUDE_DIRS}" CACHE PATH
+  "The ZLIB library include directory" FORCE )
+SET( ZLIB_LIBRARIES "${ZLIB_LIBRARIES}" CACHE PATH
+  "The ZLIB path to the ZLIB library" FORCE )
 
 include_directories( AFTER "${SDL_INCLUDE_DIR}" )
+include_directories( AFTER "${PNG_INCLUDE_DIR}" )
+include_directories( AFTER "${ZLIB_INCLUDE_DIRS}" )
 include_directories( AFTER "${CMAKE_SOURCE_DIR}/include" )
 
 SET( CGE_EXAMPLES
   projection
   clipping
   rasterizer
+  affine_texture_mapping
 )
 FOREACH(example ${CGE_EXAMPLES})
   ADD_SUBDIRECTORY(${CMAKE_SOURCE_DIR}/${example} ${CMAKE_BINARY_DIR}/${example}/bin )
