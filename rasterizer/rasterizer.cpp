@@ -11,9 +11,9 @@ void TriangleSplit(std::vector<Vector4i>& triangle)
     unsigned int len = triangle.size();
     for(unsigned int i = 0; i<len; i+=3)
     {
-        Vector4i& v0 = triangle[i+0];
-        Vector4i& v1 = triangle[i+1];
-        Vector4i& v2 = triangle[i+2];
+        Vector4i v0 = triangle[i+0];
+        Vector4i v1 = triangle[i+1];
+        Vector4i v2 = triangle[i+2];
         
         if(v0.y > v1.y)
             std::swap(v0, v1);
@@ -93,45 +93,16 @@ static void TriangleScan(
 	int xError = PosX - ceilfp(x0);
 	int xDelta = x1 - x0;
 	int column = y0*width;
-                
-                
-	if(!xDelta){
-	    //SlopeTex = Vector2i(0,0);
-	}
-	else {
-	    //SlopeTex.s = ((long long)(tcoord_end.s - tcoord_start.s) << 16) / xDelta;
-	    //SlopeTex.t = ((long long)(tcoord_end.t - tcoord_start.t) << 16) / xDelta;
-	}
-                
-	//Correct for offseted x coord
-	if(xError && xDelta){ //checked for positive xDelta, or else the slopes are 0 and can be ignored
-	    //PosTex.s   += ((long long)SlopeTex.s * xError) >> 16;
-	    //PosTex.t   += ((long long)SlopeTex.t * xError) >> 16;
-	}
-                
+                                
 	PosX >>= 16;
 	EndX >>= 16;
 
-	for(;PosX <= EndX; ++PosX){
-	    
-	    //unsigned int s = ((long long)PosTex.s * (texWidth-1)) >> 16;
-	    //unsigned int t = ((long long)PosTex.t * (texHeight-1)) >> 16;        
-	    //unsigned int texel = texture[s + t*texWidth];
-                    
+	for(;PosX <= EndX; ++PosX)
 	    buffer[PosX + column] = color;
-                    
-	    //PosTex.s   += SlopeTex.s;
-	    //PosTex.t   += SlopeTex.t;
-	}
             
 	x0 += slope0;
 	x1 += slope1;
-            
-	//tcoord_start.s += slope_tcoord0.s;
-	//tcoord_start.t += slope_tcoord0.t;    
-	//tcoord_end.s   += slope_tcoord1.s;
-	//tcoord_end.t   += slope_tcoord1.t;
-        
+                    
 	++y0;
     }
 }
@@ -159,10 +130,6 @@ void DrawTriangle(
             if(v1.x < v0.x)
                 std::swap(v0, v1);
             
-            //t0 = v0.tcoord;
-            //t1 = v1.tcoord;
-            //t2 = v2.tcoord;
-            
             x0 = v0.x;
             x1 = v1.x;
             y0 = ceilfp(v0.y);
@@ -171,39 +138,21 @@ void DrawTriangle(
 	    if(y0 > y1)
 		continue;
 
-            //tcoord_start = t0;
-            //tcoord_end   = t1;
-            
             edge0 = v2 - v0;
             edge1 = v2 - v1;
             
-            //delta_tcoord0 = t2 - t0;
-            //delta_tcoord1 = t2 - t1;
-            
-            //delta_color0 = c2 - c0;
-            //delta_color1 = c2 - c1;
         }
         else { /* p0 is on top, p1 and p2 is below */
             if(v2.x < v1.x)
                 std::swap(v1, v2);
                         
-            //t0 = v0.tcoord;
-            //t1 = v1.tcoord;
-            //t2 = v2.tcoord;
-            
             x0 = v0.x;
             x1 = v0.x;
             y0 = ceilfp(v0.y);
             y1 = ceilfp(v1.y) - (1<<16);
             
-            //tcoord_start = t0;
-            //tcoord_end   = t0;
-            
             edge0 = v1 - v0;
             edge1 = v2 - v0;
-            
-            //delta_tcoord0 = t1 - t0;
-            //delta_tcoord1 = t2 - t0;
         }
         
         /* slope for leftmost edge */
@@ -213,8 +162,6 @@ void DrawTriangle(
         }
         else{
             slope0 = ((long long)edge0.x<<16) / edge0.y;
-            //slope_tcoord0.s = ((long long)delta_tcoord0.s<<16) / edge0.y;
-            //slope_tcoord0.t = ((long long)delta_tcoord0.t<<16) / edge0.y;
         }
         
         /* slope for rightmost edge */
@@ -224,8 +171,6 @@ void DrawTriangle(
         }
         else{
             slope1 = ((long long)edge1.x<<16) / edge1.y;
-            //slope_tcoord1.s = ((long long)delta_tcoord1.s<<16) / edge1.y;
-            //slope_tcoord1.t = ((long long)delta_tcoord1.t<<16) / edge1.y;
         }
         
         int yError = y0 - v0.y;
@@ -235,11 +180,6 @@ void DrawTriangle(
         {
             x0 += ((long long)slope0*yError) >> 16;
             x1 += ((long long)slope1*yError) >> 16;
-        
-            //tcoord_start.s += ((long long)slope_tcoord0.s*yError) >> 16;
-            //tcoord_start.t += ((long long)slope_tcoord0.t*yError) >> 16;
-            //tcoord_end.s   += ((long long)slope_tcoord1.s*yError) >> 16;
-            //tcoord_end.t   += ((long long)slope_tcoord1.t*yError) >> 16;
         }
 
         y0 >>= 16;

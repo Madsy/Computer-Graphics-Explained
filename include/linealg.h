@@ -168,7 +168,7 @@ inline Vector4f project(const Vector4f& v, float width, float height)
     proj.x = v.x*centerX  + centerX;
     proj.y = v.y*centerY + centerY;
     proj.z = v.z*0.5f + 0.5f;
-    proj.w = v.w;
+    proj.w = 1.0f / v.w;
 
     return proj;
 }

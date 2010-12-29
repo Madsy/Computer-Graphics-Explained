@@ -6,25 +6,23 @@
 #include "texture.h"
 #include "myassert.h"
 
+
 void TriangleSplit(
 		   std::vector<Vector4i>& vertexData,
 		   std::vector<Vector4i>& textureData
 		   )
 {
-    printf("Inside split: \n");
-    printf("Number of tcoords: %d\n", textureData.size());
-
     unsigned int len = vertexData.size();
     for(unsigned int i = 0; i<len; i+=3)
     {
-        Vector4i& v0 = vertexData[i+0];
-        Vector4i& v1 = vertexData[i+1];
-        Vector4i& v2 = vertexData[i+2];
+        Vector4i v0 = vertexData[i+0];
+        Vector4i v1 = vertexData[i+1];
+        Vector4i v2 = vertexData[i+2];
         
-	Vector4i& t0 = textureData[i+0];
-        Vector4i& t1 = textureData[i+1];
-        Vector4i& t2 = textureData[i+2];
-	
+	Vector4i t0 = textureData[i+0];
+        Vector4i t1 = textureData[i+1];
+        Vector4i t2 = textureData[i+2];
+
         if(v0.y > v1.y){
             std::swap(v0, v1);
 	    std::swap(t0, t1);
@@ -49,11 +47,6 @@ void TriangleSplit(
 	    textureData.push_back(t0);
 	    textureData.push_back(t1);
 	    textureData.push_back(t2);
-	    /*
-	    printf("s: %d t: %d\n", t0.x, t0.y);
-	    printf("s: %d t: %d\n", t1.x, t1.y);
-	    printf("s: %d t: %d\n", t2.x, t2.y);
-	    */
             continue;
 	}
         
@@ -81,13 +74,13 @@ void TriangleSplit(
 	int x_new = v0.x + (((long long)vertexEdge0.y * vertexSlopeX) >> 16);
 	int y_new = v1.y;
 
-	//int z_new = v0.z + (((long long)vertexEdge0.y * vertexSlopeZ) >> 16);
-	//int w_new = v0.w + (((long long)vertexEdge0.y * vertexSlopeW) >> 16);
+	int z_new = v0.z + (((long long)vertexEdge0.y * vertexSlopeZ) >> 16);
+	int w_new = v0.w + (((long long)vertexEdge0.y * vertexSlopeW) >> 16);
 	
 	int s_new = t0.x + (((long long)vertexEdge0.y * textureSlopeS) >> 16);
 	int t_new = t0.y + (((long long)vertexEdge0.y * textureSlopeT) >> 16);
 
-        Vector4i v3(x_new, y_new, 0, 0);
+        Vector4i v3(x_new, y_new, z_new, w_new);
 	Vector4i t3(s_new, t_new, 0, 0);
 
 	/* Triangulate the two new triangles */
@@ -107,15 +100,6 @@ void TriangleSplit(
 	textureData.push_back(t0);
 	textureData.push_back(t1);
 	textureData.push_back(t3);
-	/*
-	printf("s: %d t: %d\n", t1.x, t1.y);
-	printf("s: %d t: %d\n", t3.x, t3.y);
-	printf("s: %d t: %d\n", t2.x, t2.y);
-
-	printf("s: %d t: %d\n", t0.x, t0.y);
-	printf("s: %d t: %d\n", t1.x, t1.y);
-	printf("s: %d t: %d\n", t3.x, t3.y);
-	*/
     }
     vertexData.erase(vertexData.begin(), vertexData.begin() + len);
     textureData.erase(textureData.begin(), textureData.begin() + len);
@@ -123,7 +107,7 @@ void TriangleSplit(
 
 
 /* Temporary structure for interpolated data.
- Used by TriangleScane() and DrawTriangle()*/
+ Used by TriangleScan() and DrawTriangle()*/
 
 struct InterpData
 {
@@ -160,7 +144,7 @@ static void TriangleScan(
     {
 	int PosX = ceilfp(x0);
         int EndX = ceilfp(x1) - (1<<16);
-               
+	
 	Vector4i PosTex = tInterp.start;
 	Vector4i SlopeTex;
 	int xError = PosX - ceilfp(x0);
@@ -189,20 +173,14 @@ static void TriangleScan(
 	EndX >>= 16;
 
 	for(;PosX <= EndX; ++PosX){
-	    
-	    unsigned int s = ((long long)PosTex.x * (texWidth-1)) >> 16;
-	    unsigned int t = ((long long)PosTex.y * (texHeight-1)) >> 16;
+	    unsigned int s = ((long long)PosTex.x * (texWidth-1))>>16ULL;
+	    unsigned int t = ((long long)PosTex.y * (texHeight-1))>>16ULL;
 
             const unsigned int* texture = &currentTexture->color[0];
 	    unsigned int texel = texture[s + t*texWidth];
-	    /*
-	    if( (s >=0 && s < 256) && (t >=0 && t < 256))
-		texel = texture[s + t*texWidth];
-	    else
-		texel = 0xFF0000FF;
-	    */
-
-	    buffer[PosX + column] = texel;
+	    /* This if statement is needed for now, because the clipping is inaccurate */
+	    if((PosX >= 0 && PosX < width) && (y0 >= 0 && y0 < height))
+		buffer[PosX + column] = texel;
                     
 	    PosTex.x   += SlopeTex.x;
 	    PosTex.y   += SlopeTex.y;
@@ -237,9 +215,6 @@ void DrawTriangle(
     Vector4i tcoordEdge0, tcoordEdge1;
     Vector4i tcoordSlope0, tcoordSlope1;
     
-    printf("\n\n\nInside drawTriangle.\n");
-    printf("Number of tcoords: %d\n", textureData.size());
-    
     for(unsigned int i=0; i<vertexData.size(); i+=3){
         
         Vector4i& v0 = vertexData[i+0];
@@ -249,18 +224,7 @@ void DrawTriangle(
 	Vector4i& t0 = textureData[i+0];
         Vector4i& t1 = textureData[i+1];
         Vector4i& t2 = textureData[i+2];
-	/*
-	printf("s: %d t: %d\n", t0.x, t0.y);
-	printf("s: %d t: %d\n", t1.x, t1.y);
-	printf("s: %d t: %d\n", t2.x, t2.y);
-	*/
-	ASSERT(t0.x >= 0 && t0.x <= 65536);
-	ASSERT(t0.y >= 0 && t0.y <= 65536);
-	ASSERT(t1.x >= 0 && t1.x <= 65536);
-	ASSERT(t1.y >= 0 && t1.y <= 65536);
-	ASSERT(t2.x >= 0 && t2.x <= 65536);
-	ASSERT(t2.y >= 0 && t2.y <= 65536);
-	
+
         /* v0 and v1 is on top */        
         if(v0.y == v1.y){
             if(v1.x < v0.x){
@@ -342,4 +306,3 @@ void DrawTriangle(
 	TriangleScan(vertexInterp, textureInterp, buffer, width, height);
     }
 }
-
