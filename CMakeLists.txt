@@ -163,6 +163,7 @@ SET( CGE_EXAMPLES
   clipping
   rasterizer
   affine_texture_mapping
+  perspective_texture_mapping
 )
 FOREACH(example ${CGE_EXAMPLES})
   ADD_SUBDIRECTORY(${CMAKE_SOURCE_DIR}/${example} ${CMAKE_BINARY_DIR}/${example}/bin )
