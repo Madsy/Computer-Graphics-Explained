@@ -3,6 +3,7 @@
 
 Buffer2D<unsigned int> colorbuffer;
 Buffer2D<unsigned short> depthbuffer;
+SDL_Surface* screen;
 
 void InitBuffers(unsigned int width, unsigned int height)
 {

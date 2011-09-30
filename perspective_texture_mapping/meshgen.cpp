@@ -158,6 +158,7 @@ void makeMeshCube(std::vector<Vector4f>& vertexData,
     vertexData.push_back(v4);
     vertexData.push_back(v1);
     vertexData.push_back(v5);
+
     /* Front */
     vertexData.push_back(v2);
     vertexData.push_back(v3);
