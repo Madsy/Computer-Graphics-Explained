@@ -13,5 +13,6 @@ void TriangleSplit(
 		   std::vector<Vector4f>& vertexData,
 		   std::vector<Vector4f>& textureData
 		   );
+
 #endif
 

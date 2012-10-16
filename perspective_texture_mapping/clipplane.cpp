@@ -1,5 +1,6 @@
 #include <vector>
 #include <algorithm>
+#include <cstdio>
 #include <linealg.h>
 #include "clipplane.h"
 
@@ -26,8 +27,8 @@ void clip_triangle(
 	    float dot0 = dot(point_current, plane) + point_current.w * plane.w;
 	    float dot1 = dot(point_next,    plane) + point_next.w    * plane.w;
 
-	    bool inside0 = dot0 >= 0.0f;
-	    bool inside1 = dot1 >= 0.0f;
+	    bool inside0 = dot0 > 0.0f;
+	    bool inside1 = dot1 > 0.0f;
 
 	    /* If start is inside, output it */
 	    if(inside0){
@@ -35,26 +36,30 @@ void clip_triangle(
 		polygon_tcoord.push_back(tcoord_current);
 	    }
 	    if(inside0 != inside1){
-		/* We're clipping an edge */
-		float t=0.0f;
-		float diff = 0.0f;
-		/* swap vertices */
-		if(!inside0){
-		    std::swap(point_current, point_next);
-		    std::swap(tcoord_current, tcoord_next);
-		    std::swap(dot0, dot1);
-		}
-		diff = dot0 - dot1;
-		if (std::abs(diff) > 1e-10)
-		    t = dot0 / diff;
-		Vector4f clipPoint = point_current + (point_next - point_current) * t;
-		clipPoint.w = point_current.w +  (point_next.w - point_current.w) * t;
-		Vector4f clipTCoord = tcoord_current + (tcoord_next - tcoord_current) * t;
-		polygon.push_back(clipPoint);
-		polygon_tcoord.push_back(clipTCoord);
+	      /* We're clipping an edge */
+	      float t=0.0f;
+	      float diff = 0.0f;
+	      /* swap vertices  if point0 is outside and point1 is inside*/
+	      if(inside0 == false){
+		std::swap(point_current, point_next);
+		std::swap(tcoord_current, tcoord_next);
+		std::swap(dot0, dot1);
+	      }
+	      diff = dot0 - dot1;
+	      if(std::abs(diff) > 1e-7f) //1e-7
+		t = dot0 / diff;
+	      if(std::abs(t) < 0.001f) t = 0.0f;
+	      Vector4f offsetPoint = (point_next - point_current) * t;
+	      Vector4f clipPoint = point_current + offsetPoint;
+	      clipPoint.w = point_current.w +  (point_next.w - point_current.w) * t;
+	      Vector4f offsetTCoord = (tcoord_next - tcoord_current) * t;
+	      Vector4f clipTCoord = tcoord_current + offsetTCoord;
+	      polygon.push_back(clipPoint);
+	      polygon_tcoord.push_back(clipTCoord);
 	    }
 	}
-	/* Split the resulting polygon into triangles */
+	/* Split the resulting polygon into triangles.
+	   TODO: Turn this into a triangle strip pattern to avoid narrow triangles.*/
 	size_t vcount = polygon.size();
 	if(vcount < 3)
 	    continue;

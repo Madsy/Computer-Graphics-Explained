@@ -15,7 +15,7 @@ int main(int argc, char* argv[])
     (void)argv;
 	
     const int width = 640;
-    const int height = 480;
+    const int height = 360;
     const int depth = 32;
     bool running = true;
     SDL_Event event;
@@ -26,7 +26,7 @@ int main(int argc, char* argv[])
     std::vector<unsigned int> texBuf;   /* RGBA Texture image */
 
     SDL_Init(SDL_INIT_VIDEO);
-    screen = SDL_SetVideoMode(width, height, depth, SDL_DOUBLEBUF | SDL_SWSURFACE);
+    screen = SDL_SetVideoMode(width, height, depth, SDL_DOUBLEBUF | SDL_HWSURFACE);
     SDL_WM_SetCaption("MechCore.net Projection Example", NULL);
     
     makeMeshCube(vertexData, tcoordData, 1.0f);
@@ -66,11 +66,12 @@ Make sure you have copied the data from the source directory to the binary direc
 	ASSERT(workingCopyVertex.size() == workingCopyTCoord.size());
 
         /* world matrix transform */
-        Matrix4f worldMatrix = translate(Vector4f(0.0f, 0.0f, -2.25f, 1.0f))  *
-	rotateY(45.0f *   time_elapsed);
+	float xOffset = 2.0f * std::sin(2.0f * M_PI * time_elapsed * 0.1f);
+	Matrix4f worldMatrix = translate(Vector4f(xOffset, 0.0f, -2.0f, 1.0f)) * 
+	  rotateX(60.0f *   time_elapsed) * rotateY(60.0f *   time_elapsed) * rotateZ(60.0f * time_elapsed);
 	
 	/* perspective function is in linealg.h under /include */
-        Matrix4f clipMatrix = perspective(90.0f, 4.0f/3.0f, 0.01f, 20.0f);
+        Matrix4f clipMatrix = perspective(45.0f, 16.0f/9.0f, 1.0f, 10.0f);
 	Matrix4f worldClipMatrix = clipMatrix * worldMatrix;
 	
         /* Transform our points */
@@ -84,7 +85,7 @@ Make sure you have copied the data from the source directory to the binary direc
 	}
 
 	/* Clip against the six frustum planes */
-#if 0
+#if 1
 	clip_triangle(workingCopyVertex, workingCopyTCoord, Vector4f(-1.0f,  0.0f, 0.0f, 1.0f));
 	clip_triangle(workingCopyVertex, workingCopyTCoord, Vector4f( 1.0f,  0.0f, 0.0f, 1.0f));
 	clip_triangle(workingCopyVertex, workingCopyTCoord, Vector4f( 0.0f,  1.0f, 0.0f, 1.0f));
@@ -118,7 +119,8 @@ Make sure you have copied the data from the source directory to the binary direc
 	       The interpolated 1/w is flipped again, that is w = 1.0 / (v0.w + t*(v1.w - v0.w))
 	       z is stored in the range [0.0, 1.0] inclusive. That is, 65535 = 1.0 */
 	}
-	
+
+	SDL_LockSurface(screen);
         unsigned int* pixels = static_cast<unsigned int*>(screen->pixels);
 	/* Clear our depth buffer */
 	ClearBuffer(DEPTH_BUFFER);
@@ -126,7 +128,7 @@ Make sure you have copied the data from the source directory to the binary direc
         memset(pixels, 0, sizeof(Uint32) * width * height);
 	/* Draw the triangles */
 	DrawTriangle(workingCopyVertex, workingCopyTCoord, pixels, width, height);
-
+	SDL_UnlockSurface(screen);
 	SDL_Flip(screen);
     }    
     SDL_Quit();

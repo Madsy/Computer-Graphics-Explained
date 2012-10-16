@@ -159,15 +159,20 @@ inline Matrix4f perspective(float fov, float aspect, float near, float far)
  * Projects our 4D clip coordinates down to 2D viewport coordinates. *
  * z and w are preserved for later use. x and y are now in pixel units*
  *********************************************************************/
+template<class T> inline T clamp(T x, T mn, T mx)
+{
+  return std::min(std::max(x, mn), mx);
+}
+
 inline Vector4f project(const Vector4f& v, float width, float height)
 {
     Vector4f proj;
     float centerX = width*0.5f;
     float centerY = height*0.5f;
 
-    proj.x = v.x*centerX  + centerX;
-    proj.y = v.y*centerY + centerY;
-    proj.z = v.z*0.5f + 0.5f;
+    proj.x = clamp(v.x*centerX  + centerX, 0.0f, width);
+    proj.y = clamp(v.y*centerY + centerY, 0.0f, height);
+    proj.z = v.z*0.5f + 0.5f; //(float)std::floor(v.z*0.5f + 0.5f * 65535.0f) * (1.0f / 65535.0f);
     //proj.w = 1.0f / v.w;
     proj.w = v.w;
     return proj;

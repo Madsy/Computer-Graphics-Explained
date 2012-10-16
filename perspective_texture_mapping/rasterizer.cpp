@@ -3,374 +3,299 @@
 #include <SDL/SDL.h>
 #include <linealg.h>
 #include <fixedpoint.h>
+#include "rasterizer.h"
 #include "framebuffer.h"
 #include "texture.h"
 #include "myassert.h"
 
-
-
-/*
-Perspective correct interpolation:
-u0 = u0/w
-v0 = v0/w
-u1 = u1/w
-v1 = v1/w
-w0 = 1/w0
-w1 = 1/w1
-
-u' = (u0 + (u1-u0)*t) / (w0 + (w1-w0)*t);
-v' = (v0 + (v1-v0)*t) / (w0 + (w1-w0)*t);
-
-*/
-
-
-/*
-        unsigned int texWidth = currentTexture->width;
-        unsigned int texHeight = currentTexture->height;
-		unsigned int texel = currentTexture->color[s + t*texWidth];
-		depthbuffer.data[PosX + column] = Zpc;
-
-
- */
-
-struct scanline_t
+inline int fpceil(int fp)
 {
-    float f_xstart, f_xend;
-    float f_zstart, f_zend;
-    float f_wstart, f_wend;
-    float f_ustart, f_uend;
-    float f_vstart, f_vend;
-};
-
-static void drawScanLine(unsigned int* cbuffer,
-		  int width, int height,
-		  int y,
-		  scanline_t* scan)
-{
-    int xstart, xend, col;
-    unsigned int x, texWidth, texHeight;
-    float edge_x, xDelta, xError;
-    float edge_u, edge_v, slope_u, slope_v;
-    float edge_z, edge_w, slope_z, slope_w;
-    float w;
-    unsigned int u,v, texel, texcol;
-    unsigned short z, *zbuffer;
-
-    xstart = std::ceil(scan->f_xstart);
-    xend   = std::ceil(scan->f_xend) - 1;
-    col = y*width;
-
-    /*
-    if(xstart > xend){
-	printf("xstart: %d, xend: %d\n", xstart, xend);
-	ASSERT(!"xstart > xend");
-    }
-    */
-
-    ASSERT(scan->f_xend > 0);
-    edge_x = scan->f_xend - scan->f_xstart;
-    edge_z = scan->f_zend - scan->f_zstart;
-    edge_w = scan->f_wend - scan->f_wstart;
-    edge_u = scan->f_uend - scan->f_ustart;
-    edge_v = scan->f_vend - scan->f_vstart;
-
-    if(edge_x > 1.0f)
-	xDelta = 1.0f / edge_x; // x slope; scalar t used for interpolation
-    else 
-	xDelta = 0.0f;
-
-    slope_z = edge_z * xDelta;
-    slope_w = edge_w * xDelta;
-    slope_u = edge_u * xDelta;
-    slope_v = edge_v * xDelta;
-
-    /* correction for fill convention */
-    xError = (float)xstart - scan->f_xstart;
-    scan->f_zstart += slope_z * xError;
-    scan->f_wstart += slope_w * xError;
-    scan->f_ustart += slope_u * xError;
-    scan->f_vstart += slope_v * xError;
-
-    /* offset z-buffer and color buffer */
-    cbuffer += col;
-    zbuffer = &depthbuffer.data[col];
-    /* texture map */
-    const unsigned int* texture = &currentTexture->color[0];
-    texWidth = currentTexture->width;
-    texHeight = currentTexture->height;
-
-    float zinterp = scan->f_zstart;
-    float winterp = scan->f_wstart;    
-    float uinterp = scan->f_ustart;
-    float vinterp = scan->f_vstart;
-
-    for(x=xstart; x<=xend; ++x){
-	ASSERT(xend > 0);
-	z = zinterp * 65535.0f;
-	if(z < zbuffer[x]){
-	    zbuffer[x] = z;
-	    ASSERT(std::abs(winterp) > 0.0f);
-	    w = 1.0f / winterp;
-	    u = uinterp * w * (float)texWidth;
-	    v = vinterp * w * (float)texHeight;
-	    texcol = v*texWidth;
-
-	    cbuffer[x] = texture[u + texcol];
-	}
-	/* final interpolation of data */
-	zinterp += slope_z;
-	winterp += slope_w;
-	uinterp += slope_u;
-	vinterp += slope_v;
-    }
+  return (fp & 65535) ? ((fp & ~65535) + 65536) : fp;
 }
 
-/************************************************ OBS OBS OBS w = 1/w!! ******************************* */
+static void drawScanLine(unsigned int* cbuffer,
+		  int width,
+		  int height,
+		  int y,
+		  int x1, int x2,
+		  int z1, int z2,
+		  int w1, int w2,
+		  int s1, int s2,
+		  int t1, int t2)
+{
+  unsigned short* zbuffer;
+  unsigned short z;
+  int deltaX, deltaZ, deltaW, deltaS, deltaT;
+  int slopeZ, slopeW, slopeS, slopeT;
+  int zStart, zEnd, wStart, wEnd, sStart, sEnd, tStart, tEnd;
+  int xError;
+  int w, s, t;
+  int texWidth, texHeight;
+  int xStart, xEnd;
+  int col;
 
-void DrawTriangle(
-		  std::vector<Vector4f>& vertexData,
+  col = y*width;
+
+  if(x1 > x2){
+    std::swap(x1, x2);
+    std::swap(z1, z2);
+    std::swap(w1, w2);
+    std::swap(s1, s2);
+    std::swap(t1, t2);
+  }
+
+  xStart = fpceil(x1);
+  xEnd = fpceil(x2) - 65536;
+  xError = xStart - x1;
+  xStart >>= 16;
+  xEnd >>= 16;
+
+  deltaX = x2 - x1;
+  deltaZ = z2 - z1;
+  deltaW = w2 - w1;
+  deltaS = s2 - s1;
+  deltaT = t2 - t1;
+
+  slopeZ = slopeW = slopeS = slopeT = 0;
+
+  if(deltaX > 0){
+    slopeZ = ((long long)deltaZ << 16) / deltaX;
+    slopeW = ((long long)deltaW << 16) / deltaX;
+    slopeS = ((long long)deltaS << 16) / deltaX;
+    slopeT = ((long long)deltaT << 16) / deltaX;
+  } else {
+    return;
+  }
+  
+  /* start interpolants */
+  sStart = s1;
+  tStart = t1;
+  zStart = z1;
+  wStart = w1;
+
+  /* Correct for the new x position */
+  zStart += ((long long)slopeZ * xError)>>16;
+  wStart += ((long long)slopeW * xError)>>16;
+  sStart += ((long long)slopeS * xError)>>16;
+  tStart += ((long long)slopeT * xError)>>16;  
+
+  zbuffer = &depthbuffer.data[col];
+  const unsigned int* texture = &currentTexture->color[0];
+  texWidth = currentTexture->width;
+  texHeight = currentTexture->height;
+  
+  int indexDst = xStart + col;    
+  int indexSrc;
+  for(; xStart <= xEnd; ++xStart){
+    z = zStart;
+    if(z < zbuffer[xStart]){
+      zbuffer[xStart] = z;
+      w = 0x100000000LL / wStart;
+      s = ((long long)w * sStart)  >> 16;
+      t = ((long long)w * tStart)  >> 16;
+      s = ((long long)s * (texWidth - 1));
+      t = ((long long)t * (texHeight - 1));
+      s >>= 16;
+      t >>= 16;
+      indexSrc = s + t*texWidth;
+      cbuffer[indexDst] = texture[indexSrc];      
+    }
+    ++indexDst;
+    zStart += slopeZ;
+    wStart += slopeW;
+    sStart += slopeS;
+    tStart += slopeT;
+  }
+}
+
+void DrawTriangle(std::vector<Vector4f>& vertexData,
 		  std::vector<Vector4f>& textureData,
 		  unsigned int* buffer,
 		  unsigned int width,
 		  unsigned int height
 		  )
 {
-    const float eps = 0.00001f;
-    float yDelta[3];
-    int isMiddlePointRight;
+  //  const float eps = 0.00001f;
+  for(int i=0; i<vertexData.size(); i+=3){
+    Vector4f& v1 = vertexData[i+0];
+    Vector4f& v2 = vertexData[i+1];
+    Vector4f& v3 = vertexData[i+2];
 
-    Vector4f vertexEdge0, vertexEdge1, vertexEdge2;
-    Vector4f vertexSlope0, vertexSlope1, vertexSlope2;
+    Vector4f& tc1 = textureData[i+0];
+    Vector4f& tc2 = textureData[i+1];
+    Vector4f& tc3 = textureData[i+2];
 
-    Vector4f tcoordEdge0, tcoordEdge1, tcoordEdge2;
-    Vector4f tcoordSlope0, tcoordSlope1, tcoordSlope2;
-    
-    for(unsigned int i=0; i<vertexData.size(); i+=3){
-        
-        Vector4f& v0 = vertexData[i+0];
-        Vector4f& v1 = vertexData[i+1];
-        Vector4f& v2 = vertexData[i+2];
-    
-	Vector4f& t0 = textureData[i+0];
-        Vector4f& t1 = textureData[i+1];
-        Vector4f& t2 = textureData[i+2];
 
-	int yStart, yEnd;
-	scanline_t scan, scantmp;
-	float yError;
-
-	/* sort from top to bottom */
-	if(v0.y > v1.y){
-	    std::swap(v0, v1);
-	    std::swap(t0, t1);
-	}
-	if(v1.y > v2.y){
-	    std::swap(v1, v2);
-	    std::swap(t1, t2);
-	}
-	if(v0.y > v1.y){
-	    std::swap(v0, v1);
-	    std::swap(t0, t1);
-	}
-	
-	vertexEdge0 = v2 - v0;
-	vertexEdge1 = v1 - v0;
-	vertexEdge2 = v2 - v1;
-	/* operator- does not assign w properly */
-	vertexEdge0.w = v2.w - v0.w;
-	vertexEdge1.w = v1.w - v0.w;
-	vertexEdge2.w = v2.w - v1.w;
-
-        tcoordEdge0 = t2 - t0;
-        tcoordEdge1 = t1 - t0;
-        tcoordEdge2 = t2 - t1;
-
-	/* huge if the triangle is narrow (not very tall)
-	   very small if the triangle is tall */
-	if(std::abs(vertexEdge0.y) > eps)
-	    yDelta[0] = 1.0f / vertexEdge0.y;
-	else
-	    yDelta[0] = 0.0f;
-	if(std::abs(vertexEdge1.y) > eps)
-	    yDelta[1] = 1.0f / vertexEdge1.y;
-	else
-	    yDelta[1] = 0.0f;
-	if(std::abs(vertexEdge2.y) > eps)
-	    yDelta[2] = 1.0f / vertexEdge2.y;
-	else
-	    yDelta[2] = 0.0f;
-
-	/* slopes for interpolated scalars */
-	vertexSlope0.x = vertexEdge0.x * yDelta[0];
-	vertexSlope0.z = vertexEdge0.z * yDelta[0];
-	vertexSlope0.w = vertexEdge0.w * yDelta[0];
-	vertexSlope1.x = vertexEdge1.x * yDelta[1];
-	vertexSlope1.z = vertexEdge1.z * yDelta[1];
-	vertexSlope1.w = vertexEdge1.w * yDelta[1];
-	vertexSlope2.x = vertexEdge2.x * yDelta[2];
-	vertexSlope2.z = vertexEdge2.z * yDelta[2];
-	vertexSlope2.w = vertexEdge2.w * yDelta[2];
-
-	tcoordSlope0.x = tcoordEdge0.x * yDelta[0];
-	tcoordSlope0.y = tcoordEdge0.y * yDelta[0];
-	tcoordSlope1.x = tcoordEdge1.x * yDelta[1];
-	tcoordSlope1.y = tcoordEdge1.y * yDelta[1];
-	tcoordSlope2.x = tcoordEdge2.x * yDelta[2];
-	tcoordSlope2.y = tcoordEdge2.y * yDelta[2];
-
-	/* Is the middle point on the left- or right side ? */
-	if(((-vertexEdge0.x*vertexEdge1.y) - (-vertexEdge0.y*vertexEdge1.x)) > 0) isMiddlePointRight = 0;
-	else isMiddlePointRight = 1;
-
-	/**************************************************************************************************************
-                                                           TOP-PART TRIANGLE
-	***************************************************************************************************************/
-	/* start values */
-	yStart = std::ceil(v0.y);
-	yEnd = std::ceil(v1.y) - 1;
-	scan.f_xstart = v0.x;
-	scan.f_xend = v0.x;
-	/* z should be linearly interpolated (no perspective correction) */
-        scan.f_zstart = v0.z;
-	scan.f_zend = v0.z;
-	/* This is really 1/w, which is linear in screen space */
-	scan.f_wstart = v0.w;
-	scan.f_wend = v0.w;
-	/* perspective correct texture mapping. u and v are already divided by w in main.cpp!*/
-	scan.f_ustart = t0.x; //* v0.w;
-	scan.f_vstart = t0.y; //* v0.w;
-	scan.f_uend   = t0.x; //* v0.w;
-	scan.f_vend   = t0.y; //* v0.w;
-
-	/* compensate for the fill convention */
-	yError = (float)yStart - v0.y;
-	
-	scan.f_xstart += vertexSlope0.x*yError;
-	scan.f_xend   += vertexSlope1.x*yError;
-	scan.f_zstart += vertexSlope0.z*yError;
-	scan.f_zend   += vertexSlope1.z*yError;
-	scan.f_wstart += vertexSlope0.w*yError;
-	scan.f_wend   += vertexSlope1.w*yError;
-	scan.f_ustart += tcoordSlope0.x*yError;
-	scan.f_uend   += tcoordSlope1.x*yError;
-	scan.f_vstart += tcoordSlope0.y*yError;
-	scan.f_vend   += tcoordSlope1.y*yError;
-
-	/* render */
-	if(scan.f_xstart < scan.f_xend){ //isMiddlePointRight
-	    for(int y=yStart; y<=yEnd; ++y){
-		scantmp = scan;
-		ASSERT(scantmp.f_xstart <= scantmp.f_xend);
-		//printf("(1) xstart: %f, xend: %f\n", scantmp.f_xstart, scantmp.f_xend);
-		drawScanLine(buffer, width, height, y, &scantmp);
-		scan.f_xstart   += vertexSlope0.x;
-		scan.f_xend     += vertexSlope1.x;
-		scan.f_zstart   += vertexSlope0.z;
-		scan.f_zend     += vertexSlope1.z;
-		scan.f_wstart   += vertexSlope0.w;
-		scan.f_wend     += vertexSlope1.w;
-		scan.f_ustart += tcoordSlope0.x;
-		scan.f_uend   += tcoordSlope1.x;
-		scan.f_vstart += tcoordSlope0.y;
-		scan.f_vend   += tcoordSlope1.y;
-	    }
-	} else {
-	    for(int y=yStart; y<=yEnd; ++y){
-		scantmp = scan;
-		std::swap(scantmp.f_xstart, scantmp.f_xend);
-		std::swap(scantmp.f_zstart, scantmp.f_zend);
-		std::swap(scantmp.f_wstart, scantmp.f_wend);
-		std::swap(scantmp.f_ustart, scantmp.f_uend);
-		std::swap(scantmp.f_vstart, scantmp.f_vend);
-		//ASSERT(scantmp.f_xstart <= scantmp.f_xend);
-		//printf("(1) xstart: %f, xend: %f\n", scantmp.f_xstart, scantmp.f_xend);
-		drawScanLine(buffer, width, height, y, &scantmp);
-		scan.f_xstart   += vertexSlope0.x;
-		scan.f_xend     += vertexSlope1.x;
-		scan.f_zstart   += vertexSlope0.z;
-		scan.f_zend     += vertexSlope1.z;
-		scan.f_wstart   += vertexSlope0.w;
-		scan.f_wend     += vertexSlope1.w;
-		scan.f_ustart += tcoordSlope0.x;
-		scan.f_uend   += tcoordSlope1.x;
-		scan.f_vstart += tcoordSlope0.y;
-		scan.f_vend   += tcoordSlope1.y;		
-	    }
-	}
-	/**************************************************************************************************************
-                                                           BOTTOM-PART TRIANGLE
-	***************************************************************************************************************/
-
-	/* start values */
-	/* We interpolate the values along the major edge (slope0) to find the new point at v1.y */
-	yStart = std::ceil(v1.y);
-	yEnd = std::ceil(v2.y) - 1;
-	scan.f_xstart = v0.x + vertexSlope0.x * vertexEdge1.y;
-	scan.f_xend = v1.x;
-
-        scan.f_zstart = v0.z + vertexSlope0.z * vertexEdge1.y;
-	scan.f_zend = v1.z;
-
-	scan.f_wstart = v0.w + vertexSlope0.w * vertexEdge1.y;
-	scan.f_wend = v1.w;
-
-	//scan.f_ustart = (t0.x * v0.w) + tcoordSlope0.x * vertexEdge1.y;
-	//scan.f_vstart = (t0.y * v0.w) + tcoordSlope0.y * vertexEdge1.y;
-	scan.f_ustart = (t0.x + tcoordSlope0.x * vertexEdge1.y);
-	scan.f_vstart = (t0.y + tcoordSlope0.y * vertexEdge1.y);
-	scan.f_uend   = t1.x;
-	scan.f_vend   = t1.y;
-
-	/* compensate for the fill convention */
-	yError = (float)yStart - v1.y;
-	
-	scan.f_xstart += vertexSlope0.x*yError;
-	scan.f_xend   += vertexSlope2.x*yError;
-	scan.f_zstart += vertexSlope0.z*yError;
-	scan.f_zend   += vertexSlope2.z*yError;
-	scan.f_wstart += vertexSlope0.w*yError;
-	scan.f_wend   += vertexSlope2.w*yError;
-	scan.f_ustart += tcoordSlope0.x*yError;
-	scan.f_uend   += tcoordSlope2.x*yError;
-	scan.f_vstart += tcoordSlope0.y*yError;
-	scan.f_vend   += tcoordSlope2.y*yError;
-
-	if(scan.f_xstart < scan.f_xend){ //!isMiddlePointRight
-	    for(int y=yStart; y<=yEnd; ++y){
-		scantmp = scan;
-		drawScanLine(buffer, width, height, y, &scantmp);
-		scan.f_xstart   += vertexSlope0.x;
-		scan.f_xend     += vertexSlope2.x;
-		scan.f_zstart   += vertexSlope0.z;
-		scan.f_zend     += vertexSlope2.z;
-		scan.f_wstart   += vertexSlope0.w;
-		scan.f_wend     += vertexSlope2.w;
-		scan.f_ustart += tcoordSlope0.x;
-		scan.f_uend   += tcoordSlope2.x;
-		scan.f_vstart += tcoordSlope0.y;
-		scan.f_vend   += tcoordSlope2.y;
-	    }
-	} else {
-	    for(int y=yStart; y<=yEnd; ++y){
-		scantmp = scan;
-		std::swap(scantmp.f_xstart, scantmp.f_xend);
-		std::swap(scantmp.f_zstart, scantmp.f_zend);
-		std::swap(scantmp.f_wstart, scantmp.f_wend);
-		std::swap(scantmp.f_ustart, scantmp.f_uend);
-		std::swap(scantmp.f_vstart, scantmp.f_vend);
-		drawScanLine(buffer, width, height, y, &scantmp);
-		scan.f_xstart   += vertexSlope0.x;
-		scan.f_xend     += vertexSlope2.x;
-		scan.f_zstart   += vertexSlope0.z;
-		scan.f_zend     += vertexSlope2.z;
-		scan.f_wstart   += vertexSlope0.w;
-		scan.f_wend     += vertexSlope2.w;
-		scan.f_ustart += tcoordSlope0.x;
-		scan.f_uend   += tcoordSlope2.x;
-		scan.f_vstart += tcoordSlope0.y;
-		scan.f_vend   += tcoordSlope2.y;		
-	    }
-	}
-	//SDL_Flip(screen);
+    /* deltas below are always positive due to this sorting. v1 = top, v2 = middle, v3 = bottom */
+    if(v1.y > v2.y){
+      std::swap(v1, v2);
+      std::swap(tc1, tc2);
     }
+    if(v2.y > v3.y){
+      std::swap(v2, v3);
+      std::swap(tc2, tc3);
+    }
+    if(v1.y > v2.y){
+      std::swap(v1, v2);
+      std::swap(tc1, tc2);
+    }
+
+    /* Q15.16 fixedpoint values*/
+    Vector4i v1fp(v1.x * 65536.0f, v1.y * 65536.0f, v1.z * 65535.0f, v1.w * 65536.0f);
+    Vector4i v2fp(v2.x * 65536.0f, v2.y * 65536.0f, v2.z * 65535.0f, v2.w * 65536.0f);
+    Vector4i v3fp(v3.x * 65536.0f, v3.y * 65536.0f, v3.z * 65535.0f, v3.w * 65536.0f);
+
+    Vector4i tc1fp(tc1.x * 65536.0f, tc1.y * 65536.0f, 0.0f, 0.0f);
+    Vector4i tc2fp(tc2.x * 65536.0f, tc2.y * 65536.0f, 0.0f, 0.0f);
+    Vector4i tc3fp(tc3.x * 65536.0f, tc3.y * 65536.0f, 0.0f, 0.0f);
+
+    Vector4i delta1PTfp = v2fp - v1fp;
+    Vector4i delta2PTfp = v3fp - v1fp;
+    Vector4i delta3PTfp = v3fp - v2fp;
+
+    Vector4i delta1TCfp = tc2fp - tc1fp;
+    Vector4i delta2TCfp = tc3fp - tc1fp;
+    Vector4i delta3TCfp = tc3fp - tc2fp;
+
+    /* w not copied properly in operator- for Vector4<T>*/
+    delta1PTfp.w = v2fp.w - v1fp.w;
+    delta2PTfp.w = v3fp.w - v1fp.w;
+    delta3PTfp.w = v3fp.w - v2fp.w;
+
+    /* Slopes for x,z,w (vertices) and u,v (tcoords) */
+    int slope1X, slope2X, slope3X;
+    int slope1Z, slope2Z, slope3Z;
+    int slope1W, slope2W, slope3W;
+    int slope1S, slope2S, slope3S;
+    int slope1T, slope2T, slope3T;
+
+    slope1X = slope2X = slope3X = 0;
+    slope1Z = slope2Z = slope3Z = 0;
+    slope1W = slope2W = slope3W = 0;
+    slope1S = slope2S = slope3S = 0;
+    slope1T = slope2T = slope3T = 0;
+
+    if(delta1PTfp.y > 0){
+      slope1X = ((long long)delta1PTfp.x << 16) / delta1PTfp.y;
+      slope1Z = ((long long)delta1PTfp.z << 16) / delta1PTfp.y;
+      slope1W = ((long long)delta1PTfp.w << 16) / delta1PTfp.y;
+      slope1S = ((long long)delta1TCfp.x << 16) / delta1PTfp.y;
+      slope1T = ((long long)delta1TCfp.y << 16) / delta1PTfp.y;
+    }
+
+    if(delta2PTfp.y > 0){
+      slope2X = ((long long)delta2PTfp.x << 16) / delta2PTfp.y;
+      slope2Z = ((long long)delta2PTfp.z << 16) / delta2PTfp.y;
+      slope2W = ((long long)delta2PTfp.w << 16) / delta2PTfp.y;
+      slope2S = ((long long)delta2TCfp.x << 16) / delta2PTfp.y;
+      slope2T = ((long long)delta2TCfp.y << 16) / delta2PTfp.y;
+    }
+
+    if(delta3PTfp.y > 0){
+      slope3X = ((long long)delta3PTfp.x << 16) / delta3PTfp.y;
+      slope3Z = ((long long)delta3PTfp.z << 16) / delta3PTfp.y;
+      slope3W = ((long long)delta3PTfp.w << 16) / delta3PTfp.y;
+      slope3S = ((long long)delta3TCfp.x << 16) / delta3PTfp.y;
+      slope3T = ((long long)delta3TCfp.y << 16) / delta3PTfp.y;
+    }
+
+    int y1, y2;
+    int x1, x2;
+    int z1, z2;
+    int w1, w2;
+    int s1, s2;
+    int t1, t2;
+    int yError, yErrorInv;
+
+    y1 = fpceil(v1fp.y);
+    y2 = fpceil(v2fp.y) - 65536;
+    yError = y1 - v1fp.y;
+    yErrorInv = 65536 - yError;
+    x1 = x2 = v1fp.x;
+    z1 = z2 = v1fp.z;
+    w1 = w2 = v1fp.w;
+    s1 = s2 = tc1fp.x;
+    t1 = t2 = tc1fp.y;
+
+    /* Correct for the new y position */    
+    x1 += ((long long)slope1X * yError) >> 16;
+    x2 += ((long long)slope2X * yError) >> 16;
+    z1 += ((long long)slope1Z * yError) >> 16;
+    z2 += ((long long)slope2Z * yError) >> 16;
+    w1 += ((long long)slope1W * yError) >> 16;
+    w2 += ((long long)slope2W * yError) >> 16;
+    s1 += ((long long)slope1S * yError) >> 16;
+    s2 += ((long long)slope2S * yError) >> 16;
+    t1 += ((long long)slope1T * yError) >> 16;
+    t2 += ((long long)slope2T * yError) >> 16;
+
+    y1 >>= 16;
+    y2 >>= 16;
+    /* Skipped if delta1f.y < 1 */
+    for(; y1<=y2; ++y1){
+      drawScanLine(buffer, width, height, y1, x1, x2, z1, z2, w1, w2, s1, s2, t1, t2);
+      z1 += slope1Z;
+      z2 += slope2Z;
+      w1 += slope1W;
+      w2 += slope2W;
+      s1 += slope1S;
+      s2 += slope2S;
+      t1 += slope1T;
+      t2 += slope2T;
+      x1 += slope1X; /* middle - top */
+      x2 += slope2X; /* bottom - top */
+    }
+
+    /* Next triangle part */
+    y1 = fpceil(v2fp.y);
+    y2 = fpceil(v3fp.y) - 65536;
+    yError = y1 - v2fp.y;
+    yErrorInv = 65536 - yError;
+    x1 = v2fp.x;
+    z1 = v2fp.z;
+    w1 = v2fp.w;
+    s1 = tc2fp.x;
+    t1 = tc2fp.y;
+
+    /* Interpolate to find this point*/
+    x2 = v1fp.x;
+    z2 = v1fp.z;
+    w2 = v1fp.w;
+    s2 = tc1fp.x;
+    t2 = tc1fp.y;
+    x2 += ((long long)slope2X * delta1PTfp.y) >> 16;
+    z2 += ((long long)slope2Z * delta1PTfp.y) >> 16;
+    w2 += ((long long)slope2W * delta1PTfp.y) >> 16;
+    s2 += ((long long)slope2S * delta1PTfp.y) >> 16;
+    t2 += ((long long)slope2T * delta1PTfp.y) >> 16;
+
+    /* Correct for the new y position */
+    x1 += ((long long)slope3X * yError) >> 16;
+    x2 += ((long long)slope2X * yError) >> 16;
+    z1 += ((long long)slope3Z * yError) >> 16;
+    z2 += ((long long)slope2Z * yError) >> 16;
+    w1 += ((long long)slope3W * yError) >> 16;
+    w2 += ((long long)slope2W * yError) >> 16;
+    s1 += ((long long)slope3S * yError) >> 16;
+    s2 += ((long long)slope2S * yError) >> 16;
+    t1 += ((long long)slope3T * yError) >> 16;
+    t2 += ((long long)slope2T * yError) >> 16;
+    
+    y1 >>= 16;
+    y2 >>= 16;
+    /* Never iterated if delta3f.y < 1 */
+    for(; y1<=y2; ++y1){
+      drawScanLine(buffer, width, height, y1, x1, x2, z1, z2, w1, w2, s1, s2, t1, t2);
+      z1 += slope3Z;
+      z2 += slope2Z;
+      w1 += slope3W;
+      w2 += slope2W;
+      s1 += slope3S;
+      s2 += slope2S;
+      t1 += slope3T;
+      t2 += slope2T;
+      x1 += slope3X; /* bottom - middle */
+      x2 += slope2X; /* bottom - top */
+    }
+  }
 }
