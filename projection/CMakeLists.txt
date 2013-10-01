@@ -1,7 +1,7 @@
 PROJECT(Projection)
 SET( ${PROJECT_NAME}_SOURCES
   main.cpp
-  line.cpp
+  line_exact.cpp
   meshgen.cpp
 )
 

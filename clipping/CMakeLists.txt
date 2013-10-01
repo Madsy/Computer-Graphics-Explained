@@ -2,7 +2,7 @@ PROJECT(Clipping)
 SET( ${PROJECT_NAME}_SOURCES
   main.cpp
   clipplane.cpp
-  line.cpp
+  line_exact.cpp
   meshgen.cpp
 )
 

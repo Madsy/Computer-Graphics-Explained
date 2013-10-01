@@ -1,9 +1,11 @@
 ================================================================================
 =                           COMPUTER GRAPHICS EXPLAINED                        =
 ================================================================================
-=      WEBPAGE: http://wiki.mechcore.net/Computer_Graphics_Explained           =
+=      WEBPAGE: http://codrspace.com/madsy/                                    =
 ================================================================================
-=      AUTHOR : Mads Andreas Elvheim, Alias 'Madsy'                            =
+=      LICENCE: BSD Clause-3                                                   =
+================================================================================
+=      AUTHOR : Mads Andreas Elvheim, Alias 'Madsy'/'Madsy9'                   =
 ================================================================================
 =      ABOUT:   This is the source code examples for a series of articles I've =
 =               written about 2D/3D computer graphics theory. It's meant as a  =
@@ -13,8 +15,8 @@
 =               er a second repo.                                              =
 ================================================================================
 =      HOW TO BUILD: I've tried to make the build-process as idiot-proof as    =
-=                    possible. You will need CMake installed, libPNG (soon)    =
-=                    and the SDL library.                                      =
+=                    possible. You will need CMake installed, libPNG 1.2       =
+=                    and the SDL 1.2 library.                                  =
 =                                                                              =
 =      ON WINDOWS:   You will need either Visual Studio installed,             =
 =                    or MinGW with MSYS.                                       =
@@ -66,6 +68,8 @@
 =                  - #algorithms                                               =
 =                  - #stackoverflow                                            =
 =                                                                              =
-=                   Just don't bother me with math questions please ;-)        =
+=                Youtube channel: madsy9                                       =
+=                Skype          : madsy9                                       =
+=                Steam          : madsy                                        =
 ================================================================================
 
