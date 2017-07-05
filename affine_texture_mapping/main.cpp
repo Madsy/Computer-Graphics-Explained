@@ -2,6 +2,7 @@
 #include <vector>
 #include <algorithm>
 #include <linealg.h>
+#include <ilu.h>
 #include "clipplane.h"
 #include "rasterizer.h"
 #include "meshgen.h"
@@ -26,6 +27,8 @@ int main(int argc, char* argv[])
     std::vector<Vector4i> tcoordDataFP;    /* Final copy, fixedpoint */
     std::vector<unsigned int> texBuf;   /* RGBA Texture image */
 
+	ilInit();
+	iluInit();
     SDL_Init(SDL_INIT_VIDEO);
     SDL_Surface* screen = SDL_SetVideoMode(width, height, depth, SDL_DOUBLEBUF | SDL_SWSURFACE);
     SDL_WM_SetCaption("MechCore.net Projection Example", NULL);

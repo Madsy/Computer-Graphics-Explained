@@ -2,6 +2,8 @@
 #include <vector>
 #include <algorithm>
 #include <linealg.h>
+#include <il.h>
+#include <ilu.h>
 #include "clipplane.h"
 #include "framebuffer.h"
 #include "rasterizer.h"
@@ -25,6 +27,8 @@ int main(int argc, char* argv[])
     std::vector<Vector4f> workingCopyTCoord;  /* Intermediate working copy */ 
     std::vector<unsigned int> texBuf;   /* RGBA Texture image */
 
+    ilInit();
+    iluInit();
     SDL_Init(SDL_INIT_VIDEO);
     screen = SDL_SetVideoMode(width, height, depth, SDL_DOUBLEBUF | SDL_HWSURFACE);
     SDL_WM_SetCaption("MechCore.net Projection Example", NULL);

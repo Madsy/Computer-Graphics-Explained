@@ -85,24 +85,15 @@ ELSEIF( SDL_INCLUDE_DIR AND SDL_LIBRARY )
 ENDIF()
 
 #########################################
-##        Find the PNG library         ##
+##        Find the DevIL library       ##
 #########################################
-IF( NOT PNG_INCLUDE_DIR AND PNG_LIBRARIES )
-  MESSAGE( FATAL_ERROR "Both the PNG_INCLUDE_DIR path and PNG_LIBRARIES must be set." )
-ELSEIF( PNG_INCLUDE_DIR AND NOT PNG_LIBRARIES )
-  MESSAGE( FATAL_ERROR "Both the PNG_INCLUDE_DIR path and PNG_LIBRARIES must be set." )
-ELSE( )
-  MESSAGE( STATUS "PNG_INCLUDE_DIR and PNG_LIBRARIES not set. Using CMAKE_PREFIX_PATH instead for searching." )
-  FIND_PACKAGE( PNG REQUIRED )
-  IF( NOT PNG_FOUND )
+FIND_PACKAGE( DevIL REQUIRED )
+IF( NOT IL_FOUND )
     MESSAGE( FATAL_ERROR 
-    "Couldn't find the location of the libPNG library. Either set CMAKE_PREFIX_PATH to be your"
-    " path prefix (the directory under bin, lib and include), or set PNG_INCLUDE_DIR and PNG_LIBRARIES" )
-  ELSE ( NOT PNG_FOUND )
+    "Couldn't find the location of the libDevIL library. Either set CMAKE_PREFIX_PATH to be your"
+    " path prefix (the directory under bin, lib and include), or set IL_INCLUDE_DIR, IL_LIBRARIES and ILU_LIBRARIES" )
+ELSE ( NOT IL_FOUND )
     MESSAGE( STATUS "Found the libPNG library under ${PNG_INCLUDE_DIR} and ${PNG_LIBRARIES}. Continuing with build." )
-  ENDIF()
-ELSEIF( PNG_INCLUDE_DIR AND PNG_LIBRARIES )
-  SET(PNG_FOUND "YES")
 ENDIF()
 
 #########################################
@@ -132,29 +123,8 @@ ENDIF()
 SET( CMAKE_PREFIX_PATH "${CMAKE_PREFIX_PATH}" CACHE PATH
   "The prefix path to the toolchain's /bin /include and /lib" FORCE )
 
-SET( SDL_FOUND "${SDL_FOUND}" CACHE BOOL
-  "The SDL library found status" FORCE )
-SET( SDL_INCLUDE_DIR "${SDL_INCLUDE_DIR}" CACHE PATH
-  "The SDL library include directory" FORCE )
-SET( SDL_LIBRARY "${SDL_LIBRARY}" CACHE PATH
-  "The SDL path to the SDL library" FORCE )
-
-SET( PNG_FOUND "${PNG_FOUND}" CACHE BOOL
-  "The PNG library found status" FORCE )
-SET( PNG_INCLUDE_DIR "${PNG_INCLUDE_DIR}" CACHE PATH
-  "The PNG library include directory" FORCE )
-SET( PNG_LIBRARIES "${PNG_LIBRARIES}" CACHE PATH
-  "The PNG path to the PNG library" FORCE )
-
-SET( ZLIB_FOUND "${ZLIB_FOUND}" CACHE BOOL
-  "The ZLIB library found status" FORCE )
-SET( ZLIB_INCLUDE_DIRS "${ZLIB_INCLUDE_DIRS}" CACHE PATH
-  "The ZLIB library include directory" FORCE )
-SET( ZLIB_LIBRARIES "${ZLIB_LIBRARIES}" CACHE PATH
-  "The ZLIB path to the ZLIB library" FORCE )
-
 include_directories( AFTER "${SDL_INCLUDE_DIR}" )
-include_directories( AFTER "${PNG_INCLUDE_DIR}" )
+include_directories( AFTER "${IL_INCLUDE_DIR}" )
 include_directories( AFTER "${ZLIB_INCLUDE_DIRS}" )
 include_directories( AFTER "${CMAKE_SOURCE_DIR}/include" )
 
